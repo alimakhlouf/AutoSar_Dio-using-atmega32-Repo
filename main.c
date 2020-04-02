@@ -9,7 +9,6 @@
 #include "micro_config.h"
 #include "Port.h"
 #include "Det.h"
-#include "uart_api.h"
 
 int main(void)
 {
