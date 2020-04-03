@@ -14,6 +14,8 @@
 #define DET_H_
 
 #include "Std_Types.h"
+#include "Std_Types.h"
+#include "micro_config.h"
 
 
 typedef struct {

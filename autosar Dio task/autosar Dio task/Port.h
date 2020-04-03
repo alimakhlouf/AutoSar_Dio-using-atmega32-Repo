@@ -9,7 +9,7 @@
 #ifndef PORT_H_
 #define PORT_H_
 
-#include <avr/io.h>
+
 #include "Dio.h"
 #include "Std_Types.h"
 #include "common_macros.h" //not standardized library
@@ -20,7 +20,7 @@
 #define  PORT_PULLUP 2
 
 
-//user defined types for link time configurations 
+//user defined types for link time configurations in Port_Lcfg.h file
 typedef struct {
 	channels_StructArrType * ch_data;
 	uint8 channel_state;

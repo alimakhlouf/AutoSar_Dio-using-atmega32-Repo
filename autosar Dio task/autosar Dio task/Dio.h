@@ -9,9 +9,13 @@
 #ifndef DIO_H_
 #define DIO_H_
 
-
+//autosar files
 #include "Std_Types.h"
 #include "Dio_Cfg.h"
+
+//non autosar files
+#include "common_macros.h"
+#include <avr/io.h>
 
 
 //API SERVICES ID

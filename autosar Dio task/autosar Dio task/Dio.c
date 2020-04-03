@@ -9,26 +9,32 @@
 #include "Dio_MemMap.h"
 #include "Det.h"
 #include "SchM_Dio.h"
-#include "common_macros.h"
+#include "Port.h"
 
-// the address of the first PIN registers(which is PINA)
+
+// the address of the first PIN register(which is PINA)
 #define PIN_REG_BASE (volatile uint8 *)(0x39)
-// the address of the first  DDR registers(which is DDRA)
+// the address of the first  DDR register(which is DDRA)
 #define DDR_REG_BASE (volatile uint8 *)(0x3A)
-// the address of the first  PORT registers(which is PORTA)
+// the address of the first  PORT register(which is PORTA)
 #define PORT_REG_BASE (volatile uint8 *)(0x3B)
 
-//it chooses the port registers based on the offset whether A(offset 0) - B(offset 1) - C(offset 3)
-//D(offset 4).
+/*it chooses the address port registers based on the offset whether A(offset 0) - B(offset 1) - 
+C(offset 3) D(offset 4).*/
 #define PORT_OFFSET(n) (((n) * -3))
 
-//defines the PORT register address based on the char value in actual_port (e.g. if actual_ pin =  'B'
+//defines the PORT register address based on the char value in mcu_port (e.g. if actual_ pin =  'B'
  //will give you the address of PORTB)  
-#define SPECIFIC_PORT_REG *(PORT_REG_BASE + PORT_OFFSET(actual_port - 'A'))
+#define SPECIFIC_PORT_REG *(PORT_REG_BASE + PORT_OFFSET(mcu_port - 'A'))
 
-//gives you the PIN register address based on the char value in actual_port (e.g. if actual_ pin = 'C'
+//gives you the PIN register address based on the char value in mcu_port (e.g. if actual_ pin = 'C'
 //then it will give you the address of PINC)
-#define SPECIFIC_PIN_REG *(PIN_REG_BASE + PORT_OFFSET(actual_port  - 'A'))
+#define SPECIFIC_PIN_REG *(PIN_REG_BASE + PORT_OFFSET(mcu_port  - 'A'))
+
+//gives you the DDR register address based on the char value in mcu_port (e.g. if actual_ pin = 'C'
+//then it will give you the address of PINC)
+#define SPECIFIC_DDR_REG *(DDR_REG_BASE + PORT_OFFSET(mcu_port  - 'A'))
+                         
 
 
 
@@ -37,7 +43,7 @@ Dio_LevelType Dio_ReadChannel(Dio_ChannelType ChannelId)
 {
 	
 	uint8 i = 0; //used as a counter below
-	uint8 ch_port = 0; //will hold the port value of the parameter channel_id  
+	uint8 mcu_port = 0; //will hold the port value of the parameter channel_id  
 	uint8 ch_pin = 0; //will hold the pin number of the parameter channel_id (aaccording to 
 	//the port which it's in)  
 	
@@ -50,7 +56,7 @@ Dio_LevelType Dio_ReadChannel(Dio_ChannelType ChannelId)
 		//if the ID in the parameter exists within the available IDs
 		if (ChannelId == channels[i].Channel_Id)
 		{
-			ch_port = channels[i].port; //hold the port value of the parameter channel_id 
+			mcu_port = channels[i].port; //hold the port value of the parameter channel_id 
 			ch_pin = channels[i].pin_num; //will hold the pin number (according to the port)
 			// of the parameter channel_id
 			break;
@@ -62,12 +68,15 @@ Dio_LevelType Dio_ReadChannel(Dio_ChannelType ChannelId)
 	//if no such ID exists .. report an error
 	if (i >= PINS_NUM)
 	{
-		Det_ReportError(DioId, 0, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+		// If development errors are enabled and an error occurred, the Dio
+		//module's read functions shall return with the value '0'.
+		return  Det_ReportError(DioId, 0, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
 	}
 #endif
 
+
 	//get the channel value using the pin_num value and the port value 
-	if (GET_BIT(*(PIN_REG_BASE + PORT_OFFSET(ch_port - 'A')), ch_pin) != 0)
+	if (GET_BIT(SPECIFIC_PIN_REG , ch_pin) != 0)
 	{
 		result = STD_HIGH;
 	}
@@ -75,6 +84,12 @@ Dio_LevelType Dio_ReadChannel(Dio_ChannelType ChannelId)
 	{
 		result = STD_LOW;
 	}
+	
+	/*[SWS_Dio_00083] ⌈If the micro-controller supports the direct read-back of a pin
+	value, the Dio module's read functions shall provide the real pin level, when they are
+	used on a channel which is configured as an output channel.⌋
+	this requirement is automatically applied since the PIN register reads the pin real value in both
+	input states (input - ouput)  */
 		
 	
 	
@@ -88,32 +103,40 @@ void Dio_WriteChannel(Dio_ChannelType ChannelId, Dio_LevelType Level)
 	
 	//same comments as Dio_ReadChannel
 	uint8 i = 0;
-	uint8 ch_port = 0;
+	uint8 mcu_port = 0;
 	uint8 ch_pin = 0;
+	uint8 pin_state = PORT_INPUT;
 	
 	for (i = 0; i < PINS_NUM; i++ )
 	{
 		
 		if (ChannelId == channels[i].Channel_Id)
 		{
-			ch_port = channels[i].port;
+			mcu_port = channels[i].port;
 			ch_pin = channels[i].pin_num;
+			pin_state = pinstates[i].channel_state; //also receive the pin state which is in pinstates
+			                                        // struct in Port_Lcfg.h
 			break;
 		}
 		
 	}
-
+	
 	
 #if DioDevErrorDetect == STD_ON
 	if (i >= PINS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+		return ;
 	}
-	
 #endif
-	//assign the level to the channel
-	//
-	ASSIGN_BIT(*(PORT_REG_BASE + PORT_OFFSET(ch_port - 'A')), ch_pin, Level);
+
+	/*applying [SWS_Dio_00070] ⌈If a Dio write function is used on an input channel, it shall have
+	no effect on the physical output level. ⌋ */
+	if (pin_state == PORT_OUTPUT)
+	{
+		//assign the level to the channel
+		ASSIGN_BIT(SPECIFIC_PORT_REG, ch_pin, Level);
+	}
 	
 }
 
@@ -121,14 +144,14 @@ void Dio_WriteChannel(Dio_ChannelType ChannelId, Dio_LevelType Level)
 Dio_PortLevelType Dio_ReadPort(Dio_PortType PortId)
 {
 	uint8 i = 0;
-	uint8 actual_port = 'A';
+	uint8 mcu_port = 'A';
 	
 	for (i = 0; i < PORTS_NUM; i++ )
 	{
 		
 		if (PortId == ports[i].Port_Id)
 		{
-			actual_port = ports[i].port;
+			mcu_port = ports[i].port;
 			break;
 		}
 		
@@ -137,9 +160,17 @@ Dio_PortLevelType Dio_ReadPort(Dio_PortType PortId)
 #if DioDevErrorDetect == STD_ON
 	if (i >= PORTS_NUM)
 	{
-		Det_ReportError(DioId, 0, DIO_READPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
+		// If development errors are enabled and an error occurred, the Dio
+		//module's read functions shall return with the value '0'.
+		return	Det_ReportError(DioId, 0, DIO_READPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
 	}
 #endif
+	
+	/*[SWS_Dio_00083] ⌈If the micro-controller supports the direct read-back of a pin
+	value, the Dio module's read functions shall provide the real pin level, when they are
+	used on a channel which is configured as an output channel.⌋
+	this requirement is automatically applied sincethe PIN register reads the pin real value in both
+	input states (inpu - ouput)  */
 	
 	//return the PIN register of the specific PortId 
 	return (SPECIFIC_PIN_REG);
@@ -149,14 +180,14 @@ void Dio_WritePort(Dio_PortType PortId, Dio_PortLevelType Level)
 {
 	//same comments as Dio_ReadPort
 	uint8 i = 0;
-	uint8 actual_port = 'A';
+	uint8 mcu_port = 'A';
 	
 	for (i = 0; i < PORTS_NUM; i++ )
 	{
 		
 		if (PortId == ports[i].Port_Id)
 		{
-			actual_port = ports[i].port;
+			mcu_port = ports[i].port;
 			break;
 		}
 		
@@ -166,25 +197,36 @@ void Dio_WritePort(Dio_PortType PortId, Dio_PortLevelType Level)
 	if (i >= PORTS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITEPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
+		return ;
 	}
 #endif
-	
-	//set the selected PORT register the value in the parameter(level) 
-	SPECIFIC_PORT_REG = Level;
+
+	/*applying [SWS_Dio_00004] ⌈The Dio_WritePort function shall ensure that the functionality
+	of the input channels of that port is not affected. ⌋*/
+	for (uint8 cnt = 0 ; cnt < 8; cnt++ )
+	{
+		
+		// if the pin in the port is (output) apply the new bit status otherwise do not do apply 
+		if (GET_BIT(SPECIFIC_DDR_REG, cnt) != STD_LOW)
+		{
+			ASSIGN_BIT(SPECIFIC_PORT_REG, cnt, GET_BIT(Level , cnt) );
+		}
+		
+	}
 	
 }
 
 Dio_PortLevelType Dio_ReadChannelGroup(const Dio_ChannelGroupType* ChannelGroupIdPtr)
 {
 	uint8 i = 0;
-	uint8 actual_port = 'A';
+	uint8 mcu_port = 'A';
 	
 	for (i = 0; i < GROUPS_NUM; i++ )
 	{
 		
 		if (ChannelGroupIdPtr == groups[i].Group_ID)
 		{
-			actual_port = groups[i].port;
+			mcu_port = groups[i].port;
 			break;
 		}
 		
@@ -194,9 +236,17 @@ Dio_PortLevelType Dio_ReadChannelGroup(const Dio_ChannelGroupType* ChannelGroupI
 #if DioDevErrorDetect == STD_ON
 	if (i >= GROUPS_NUM)
 	{
-		Det_ReportError(DioId, 0, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
+		// If development errors are enabled and an error occurred, the Dio
+		//module's read functions shall return with the value '0'.
+		return Det_ReportError(DioId, 0, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
 	}
 #endif
+	
+	/*[SWS_Dio_00083] ⌈If the micro-controller supports the direct read-back of a pin
+	value, the Dio module's read functions shall provide the real pin level, when they are
+	used on a channel which is configured as an output channel.⌋
+	this requirement is automatically applied sincethe PIN register reads the pin real value in both
+	input states (inpu - ouput)  */
 	
 	//first select the PIN register .. then apply he mask to get the specific bits the shift right
 	// to remove the offset 
@@ -206,14 +256,14 @@ Dio_PortLevelType Dio_ReadChannelGroup(const Dio_ChannelGroupType* ChannelGroupI
 void Dio_WriteChannelGroup(const Dio_ChannelGroupType* ChannelGroupIdPtr, Dio_PortLevelType Level)
 {
 	int8 i = 0;
-	uint8 actual_port = 'A';
+	uint8 mcu_port = 'A';
 	
 	for (i = 0; i < GROUPS_NUM; i++ )
 	{
 		
 		if (ChannelGroupIdPtr == groups[i].Group_ID)
 		{
-			actual_port = groups[i].port;
+			mcu_port = groups[i].port;
 			break;
 		}
 		
@@ -223,13 +273,43 @@ void Dio_WriteChannelGroup(const Dio_ChannelGroupType* ChannelGroupIdPtr, Dio_Po
 	if (i >= GROUPS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
+		return ;
 	}
 #endif
 	
-	//assign the group to the port by first clearing the bits and then oring with the channel 
-	//group after shifting thm to their specific offset  
-	SPECIFIC_PORT_REG = ((SPECIFIC_PORT_REG) & ~(ChannelGroupIdPtr->mask)) | 
-	                     (Level << ChannelGroupIdPtr->offset);
+	/*now we want to apply [SWS_Dio_00040] ⌈The Dio_WriteChannelGroup shall not change the remaining
+	channels of the port and channels which are configured as input. ⌋
+	this is done by checking ever bit in the group bits and check whether it's input or output then apply the corresponding
+	new bit value if it's output ( we don't need to check the the rest f the bit in the port as we 
+	won't be assigning anything to them in the first place*/
+	
+	//1- we know the number of bits in the channel_group   
+	
+	//an example of the below var is if group bits are 0b000(101)00, the below var value will be 0b00000111
+	uint8 group_bits_high = (ChannelGroupIdPtr->mask) >> (ChannelGroupIdPtr->offset);
+	
+	uint8 group_bits_count = 0; //hold the number of group bits
+	
+    for  (group_bits_count = 0; group_bits_count < 8; group_bits_count++ )
+	{
+		
+		//if it has reached the end f the high bits, then we have got the number of group bits and  
+		if (GET_BIT(group_bits_high, (1 << group_bits_count)) == STD_LOW)
+		{
+			break;
+		}
+	}
+	
+	/*2- we loop over the group bits and check whether each bit is input or output and apply the 
+	changes to the output pins*/  
+	for (uint8 j; j < group_bits_count; j++)
+	{
+		if (GET_BIT (SPECIFIC_DDR_REG, j << ChannelGroupIdPtr->offset) == STD_HIGH)
+		{
+			ASSIGN_BIT(SPECIFIC_PORT_REG, (j << ChannelGroupIdPtr->offset) , GET_BIT(Level, j) );
+		} 
+	}
+	
 }
 
 #if (DioVersionInfoApi == STD_ON)
@@ -243,7 +323,7 @@ void Dio_GetVersionInfo(Std_VersionInfoType* VersionInfo)
 Dio_LevelType Dio_FlipChannel(Dio_ChannelType ChannelId)
 {
 	uint8 i = 0;
-	uint8 actual_port = 'A';
+	uint8 mcu_port = 'A';
 	uint8 ch_pin = 0;
 	
 	for (i = 0; i < PINS_NUM; i++ )
@@ -251,7 +331,7 @@ Dio_LevelType Dio_FlipChannel(Dio_ChannelType ChannelId)
 		
 		if (ChannelId == channels[i].Channel_Id)
 		{
-			actual_port = channels[i].port;
+			mcu_port = channels[i].port;
 			ch_pin = channels[i].pin_num;
 			break;
 		}
@@ -262,6 +342,7 @@ Dio_LevelType Dio_FlipChannel(Dio_ChannelType ChannelId)
 	if (i >= PINS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+		return ;
 	}
 	
 #endif

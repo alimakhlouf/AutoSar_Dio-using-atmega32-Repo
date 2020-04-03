@@ -25,9 +25,9 @@
 #define BIT_IS_SET(REG, BIT) ((REG) & (1 << (BIT)))
 
 /* Check if A specific bit is cleared in any register and return true if yes */
-#define BIT_IS_CLEAR(REG, BIT) ( !((REG) & (1 << (BIT))))
+#define BIT_IS_CLEAR(REG, BIT) ( !((REG) & (1 << (BIT))) )
 
-#define GET_BIT(a_reg, a_bit_no) ((a_reg) & ((0x01) << (a_bit_no)))
+#define GET_BIT(a_reg, a_bit_no) ( ((a_reg) & ((0x01) << (a_bit_no))) >> (a_bit_no) )
 
 #define MODULO(divident, divisor) ((divident) - ((divisor) * ((divident) / (divisor))))
 
