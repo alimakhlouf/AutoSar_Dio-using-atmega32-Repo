@@ -24,5 +24,5 @@ Std_ReturnType Det_ReportError(uint16 ModuleId,uint8 InstanceId,uint8 ApiId, uin
 	*(det_config.det_port) = ErrorId;
 	_delay_ms(3000);
 	
-	return E_NOT_OK;
+	return E_OK;
 }

@@ -70,7 +70,9 @@ Dio_LevelType Dio_ReadChannel(Dio_ChannelType ChannelId)
 	{
 		// If development errors are enabled and an error occurred, the Dio
 		//module's read functions shall return with the value '0'.
-		return  Det_ReportError(DioId, 0, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+		Det_ReportError(DioId, 0, DIO_READCHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
+		
+		return 0; //applying error SWS_Dio_00118
 	}
 #endif
 
@@ -126,7 +128,7 @@ void Dio_WriteChannel(Dio_ChannelType ChannelId, Dio_LevelType Level)
 	if (i >= PINS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
-		return ;
+		return ; //we must abort the write operation to avoid any runtime errors
 	}
 #endif
 
@@ -162,7 +164,8 @@ Dio_PortLevelType Dio_ReadPort(Dio_PortType PortId)
 	{
 		// If development errors are enabled and an error occurred, the Dio
 		//module's read functions shall return with the value '0'.
-		return	Det_ReportError(DioId, 0, DIO_READPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
+		Det_ReportError(DioId, 0, DIO_READPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
+		return 0; //applying error SWS_Dio_00118
 	}
 #endif
 	
@@ -197,7 +200,7 @@ void Dio_WritePort(Dio_PortType PortId, Dio_PortLevelType Level)
 	if (i >= PORTS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITEPORT_ID, DIO_E_PARAM_INVALID_PORT_ID);
-		return ;
+		return ; //we must abort the write operation to avoid any runtime errors
 	}
 #endif
 
@@ -238,7 +241,8 @@ Dio_PortLevelType Dio_ReadChannelGroup(const Dio_ChannelGroupType* ChannelGroupI
 	{
 		// If development errors are enabled and an error occurred, the Dio
 		//module's read functions shall return with the value '0'.
-		return Det_ReportError(DioId, 0, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
+		Det_ReportError(DioId, 0, DIO_READCHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
+		return 0; //applying error SWS_Dio_00118
 	}
 #endif
 	
@@ -273,7 +277,7 @@ void Dio_WriteChannelGroup(const Dio_ChannelGroupType* ChannelGroupIdPtr, Dio_Po
 	if (i >= GROUPS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNELGROUP_ID, DIO_E_PARAM_INVALID_GROUP);
-		return ;
+		return ; //we must abort the write operation to avoid any runtime errors
 	}
 #endif
 	
@@ -342,16 +346,14 @@ Dio_LevelType Dio_FlipChannel(Dio_ChannelType ChannelId)
 	if (i >= PINS_NUM)
 	{
 		Det_ReportError(DioId, 0, DIO_WRITECHANNEL_ID, DIO_E_PARAM_INVALID_CHANNEL_ID);
-		return ;
+		return 0; //applying error SWS_Dio_00118 .. flip also reads the pin 
+				  //after flipping it so the error is a applied to it
 	}
 	
 #endif
 	
 	
 	TOGGLE_BIT(SPECIFIC_PORT_REG, ch_pin);
-	
-	
-	
 	return Dio_ReadChannel(ChannelId);
 	
 }
