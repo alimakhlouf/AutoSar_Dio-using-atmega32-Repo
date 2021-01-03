@@ -2,7 +2,8 @@
  * Det.h
  *
  * Created: 01/04/2020 12:46:42 م
- *  Author: Ali makhlouf
+ * Author: Ali makhlouf
+ * DET Module's files are stub files that are not based on autosar standard 
  */ 
 
 // it's included from another module so you have to go to go to this module to know how o write DET)Report Error function

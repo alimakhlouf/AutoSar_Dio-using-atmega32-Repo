@@ -94,7 +94,7 @@
               <PARAMETER-VALUES>
                 <ECUC-NUMERICAL-PARAM-VALUE>
                   <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/ArcCore/EcucDefs/ST/stm32f10x/Dio/DioGeneral/DioDevErrorDetect</DEFINITION-REF>
-                  <VALUE>false</VALUE>
+                  <VALUE>false</VALUE> //pre-compile paramter
                 </ECUC-NUMERICAL-PARAM-VALUE>
                 <ECUC-NUMERICAL-PARAM-VALUE>
                   <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/ArcCore/EcucDefs/ST/stm32f10x/Dio/DioGeneral/DioFlipChannelApi</DEFINITION-REF>
@@ -102,7 +102,7 @@
                 </ECUC-NUMERICAL-PARAM-VALUE>
                 <ECUC-NUMERICAL-PARAM-VALUE>
                   <DEFINITION-REF DEST="ECUC-BOOLEAN-PARAM-DEF">/ArcCore/EcucDefs/ST/stm32f10x/Dio/DioGeneral/DioVersionInfoApi</DEFINITION-REF>
-                  <VALUE>false</VALUE>
+                  <VALUE>false</VALUE>  //pre-compile paramter
                 </ECUC-NUMERICAL-PARAM-VALUE>
               </PARAMETER-VALUES>
             </ECUC-CONTAINER-VALUE>

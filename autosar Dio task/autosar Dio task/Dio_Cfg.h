@@ -10,7 +10,10 @@
 #define DIO_CFG_H_
 
 
-//DIO_GENERAL
+
+
+//DIO_GENERAL .. these also existed in the dio_md.arxml
+
 /*
 Switches the development error detection and notification on or off.
  true: detection and notification is enabled.
@@ -57,6 +60,8 @@ EcucBooleanParamDef
 
 
 /*****************PORTS - CHANNELS - GROUPS IDs ********************/
+/**page 45 in SWS :This value will be assigned to the DIO port symbolic
+ name (i.e. the SHORT-NAME of the DioPort container)*/
 #define DioPortId_1 0
 #define DioPortId_2 1
 #define DioChannelId_1 1

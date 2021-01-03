@@ -3,6 +3,7 @@
  *
  * Created: 01/04/2020 01:13:35 م
  *  Author: Ali makhlouf
+ * DET Module's files are stub files that are not based on autosar standard 
  */ 
 
 #include "Det.h"
@@ -22,7 +23,6 @@ void Det_Init(const Det_ConfigType* ConfigPtr)
 Std_ReturnType Det_ReportError(uint16 ModuleId,uint8 InstanceId,uint8 ApiId, uint8 ErrorId)
 {
 	*(det_config.det_port) = ErrorId;
-	_delay_ms(3000);
 	
 	return E_OK;
 }
